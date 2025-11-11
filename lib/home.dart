@@ -1,0 +1,123 @@
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import 'profile_screen.dart';
+import 'Search.dart';
+import 'LoginScreen.dart';
+import 'main.dart';
+import 'config.dart';
+
+class Home extends StatefulWidget {
+  const Home({super.key});
+
+  @override
+  State<Home> createState() => _HomeState();
+}
+
+class _HomeState extends State<Home> {
+
+  int _selectedIndex = 0;
+  String? token;
+  int? userId;
+  final String baseUrl = AppConfig.baseUrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      token = prefs.getString('token');
+      userId = prefs.getInt('userId');
+    });
+  }
+
+  // All pages go here
+  late final List<Widget> _pages = [
+    const Center(child: Text('Home Page')), // Home screen content
+    Profile(userId: userId!, token: token!, baseUrl: baseUrl ),
+    const Search(),
+  ];
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
+  //log out
+  Future<void> logout(BuildContext context) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+
+    try {
+      final response = await http.post(
+        Uri.parse('${AppConfig.baseUrl}/api/AuthApi/logout'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        await prefs.clear();
+        navigatorKey.currentState?.pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+              (route) => false,
+        );
+      } else {
+        print('Logout failed: ${response.body}');
+      }
+    } catch (e) {
+      print('Logout error: $e');
+    }
+  }
+
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('MiniSocial'),
+        centerTitle: true,
+        backgroundColor: Colors.grey,
+
+      ),
+
+      body:  _pages[_selectedIndex],
+
+      floatingActionButton: FloatingActionButton(
+          onPressed: () {
+            print('FAB clicked');
+          },
+          child: Icon(Icons.add),
+        ),
+        drawer: Drawer(
+          child: ListView(
+            children: [
+              DrawerHeader(child: Text('Menu')),
+              ListTile(title: Text('Profile')),
+              ListTile(title: Text('Settings')),
+              ListTile(
+                leading: const Icon(Icons.logout, color: Colors.redAccent),
+                title: const Text('Logout'),
+                onTap: () =>  logout(context),
+              ),
+            ],
+          ),
+        ),
+
+      bottomNavigationBar: BottomNavigationBar(
+          currentIndex: _selectedIndex,
+          onTap: _onItemTapped,
+          items: [
+            BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+            BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+            BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Search'),
+
+
+      ]),
+
+    );
+  }
+}
