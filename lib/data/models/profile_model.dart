@@ -18,18 +18,47 @@ class ProfileResponse{
   });
 
   factory ProfileResponse.fromJson(Map<String, dynamic> json){
-    return ProfileResponse(
-      profile: Profile.fromJson(json['profile']),
-      counts: Counts.fromJson(json['counts']),
-      posts: (json['posts'] as List<dynamic>?)
-          ?.map((p) => Post.fromJson(p))
-          .toList() ??
-          [],
-      isPrivate: json['isPrivate'] ?? false,
-      isApprovedFollower: json['isApprovedFollower'] ?? false,
-      followStatus: json['followStatus'] ?? '',
-      message: json['message'],
-    );
+    // Check if this is a limited profile response (has message and no nested profile)
+    final isLimitedProfile = json['message'] != null && json['profile'] == null;
+    
+    if (isLimitedProfile) {
+      // Limited profile: flat structure from backend
+      // Backend sends: Id, DisplayName, Avatar, Bio, IsPrivate, FollowStatus, message
+      // Need to construct Profile from flat structure
+      return ProfileResponse(
+        profile: Profile(
+          id: json['Id'] ?? json['id'] ?? 0,
+          userId: json['Id'] ?? json['id'] ?? 0, // Limited profile doesn't have userId, use Id
+          displayName: json['DisplayName'] ?? json['displayName'] ?? '',
+          avatar: json['Avatar'] ?? json['avatar'] ?? '',
+          bio: json['Bio'] ?? json['bio'],
+          isPrivate: json['IsPrivate'] ?? json['isPrivate'] ?? false,
+          username: '', // Limited profile doesn't include username
+        ),
+        counts: Counts(followersCount: 0, followingCount: 0, postsCount: 0),
+        posts: [],
+        isPrivate: json['IsPrivate'] ?? json['isPrivate'] ?? false,
+        isApprovedFollower: false,
+        followStatus: json['FollowStatus'] ?? json['followStatus'] ?? '',
+        message: json['message'],
+      );
+    } else {
+      // Full profile: nested structure
+      return ProfileResponse(
+        profile: Profile.fromJson(json['profile'] as Map<String, dynamic>),
+        counts: json['counts'] != null 
+            ? Counts.fromJson(json['counts'] as Map<String, dynamic>)
+            : Counts(followersCount: 0, followingCount: 0, postsCount: 0),
+        posts: (json['posts'] as List<dynamic>?)
+            ?.map((p) => Post.fromJson(p))
+            .toList() ??
+            [],
+        isPrivate: json['isPrivate'] ?? false,
+        isApprovedFollower: json['isApprovedFollower'] ?? false,
+        followStatus: json['followStatus'] ?? '',
+        message: json['message'],
+      );
+    }
   }
 
 }

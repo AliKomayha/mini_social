@@ -53,4 +53,43 @@ class ProfileService{
     }
   }
 
+  Future<bool> isFollowing(int targetUserId) async{
+    final url = Uri.parse('$baseUrl/api/ProfilesApi/IsFollowing/$targetUserId');
+    final response = await http.get(url, headers: {
+      'Authorization': 'Bearer $token',
+    });
+
+    if(response.statusCode == 200){
+      return  jsonDecode(response.body) == true;
+    }
+    else{
+      throw Exception('Failed to check following status');
+    }
+  }
+
+  Future<void> followUser(int followingId) async{
+    final url = Uri.parse('$baseUrl/api/ProfilesApi/Follow/$followingId');
+    final response = await http.post(url, headers: {
+        'Authorization': 'Bearer $token',
+      });
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to follow user');
+    }
+  }
+
+  Future<void> unFollowUser(int followingId) async{
+    final url = Uri.parse('$baseUrl/api/ProfilesApi/UnFollow/$followingId');
+    final response = await http.post(url, headers: {
+      'Authorization': 'Bearer $token',
+    });
+
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to unfollow user');
+    }
+  }
+
+
+
 }
