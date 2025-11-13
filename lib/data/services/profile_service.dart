@@ -90,6 +90,19 @@ class ProfileService{
     }
   }
 
+  Future<List<dynamic>> searchProfiles(String query) async {
+    final encodedQuery = Uri.encodeComponent(query);
+    final url = Uri.parse('$baseUrl/api/ProfilesApi/Search?query=$encodedQuery');
+    final response = await http.get(url, headers: {
+      'Authorization': 'Bearer $token',
+    });
 
-
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return data as List<dynamic>;
+    } else {
+      throw Exception('Search failed: ${response.statusCode} - ${response.body}');
+    }
+  }
 }
+
