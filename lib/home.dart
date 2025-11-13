@@ -6,6 +6,7 @@ import 'Search.dart';
 import 'LoginScreen.dart';
 import 'main.dart';
 import 'config.dart';
+import 'follow_requests.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -76,6 +77,13 @@ class _HomeState extends State<Home> {
 
   @override
   Widget build(BuildContext context) {
+
+    if (token == null || userId == null) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('MiniSocial'),
@@ -97,6 +105,18 @@ class _HomeState extends State<Home> {
             children: [
               DrawerHeader(child: Text('Menu')),
               ListTile(title: Text('Profile')),
+              ListTile(
+                leading: const Icon(Icons.person_add),
+                title: const Text('Follow Requests'),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => FollowRequestsScreen(token: token!),
+                    ),
+                  );
+                },
+              ),
               ListTile(title: Text('Settings')),
               ListTile(
                 leading: const Icon(Icons.logout, color: Colors.redAccent),
