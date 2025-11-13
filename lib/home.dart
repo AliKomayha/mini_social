@@ -7,16 +7,24 @@ import 'LoginScreen.dart';
 import 'main.dart';
 import 'config.dart';
 import 'follow_requests.dart';
+import 'feed_widget.dart';
 
 class Home extends StatefulWidget {
-  const Home({super.key});
+  final int currentUserId;
+  final String token;
+  final String baseUrl;
+  const Home({
+    super.key,
+    required this.currentUserId,
+    required this.token,
+    required this.baseUrl,
+  });
 
   @override
   State<Home> createState() => _HomeState();
 }
 
 class _HomeState extends State<Home> {
-
   int _selectedIndex = 0;
   String? token;
   int? userId;
@@ -37,8 +45,8 @@ class _HomeState extends State<Home> {
   }
 
   // All pages go here
-  late final List<Widget> _pages = [
-    const Center(child: Text('Home Page')), // Home screen content
+  List<Widget> get _pages => [
+    FeedWidget(token: token!, baseUrl: baseUrl), // Home screen content
     Profile(userId: userId!, token: token!, baseUrl: baseUrl ),
     const Search(),
   ];

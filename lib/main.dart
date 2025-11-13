@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'home.dart';
 import 'LoginScreen.dart';
+import 'config.dart';
 
 void main() {
   runApp(const MyApp());
@@ -11,9 +12,18 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  Future<bool> _isLoggedIn() async {
+  Future<Map<String, dynamic>?> _getUserData() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('token') != null;
+    final token = prefs.getString('token');
+    final userId = prefs.getInt('userId');
+    
+    if (token != null && userId != null) {
+      return {
+        'token': token,
+        'userId': userId,
+      };
+    }
+    return null;
   }
 
   @override
@@ -21,15 +31,23 @@ class MyApp extends StatelessWidget {
     return  MaterialApp(
       debugShowCheckedModeBanner: false,
       navigatorKey: navigatorKey,
-      home: FutureBuilder<bool>(
-        future: _isLoggedIn(),
+      home: FutureBuilder<Map<String, dynamic>?>(
+        future: _getUserData(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
             return const Scaffold(
               body: Center(child: CircularProgressIndicator()),
             );
           }
-          return snapshot.data! ? const Home() : const LoginScreen();
+          final userData = snapshot.data;
+          if (userData != null) {
+            return Home(
+              currentUserId: userData['userId'],
+              token: userData['token'],
+              baseUrl: AppConfig.baseUrl,
+            );
+          }
+          return const LoginScreen();
         },
       ),
 

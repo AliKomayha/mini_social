@@ -120,11 +120,15 @@ class Post{
   final int id;
   final String text;
   final String? imagePath;
+  final int? likeCount;
+  final int? commentCount;
 
   Post({
     required this.id,
     required this.text,
     this.imagePath,
+    this.likeCount,
+    this.commentCount,
   });
 
   factory Post.fromJson(Map<String, dynamic> json) {
@@ -132,6 +136,8 @@ class Post{
       id: json['id'],
       text: json['text'] ?? '',
       imagePath: json['imagePath'],
+      likeCount: json['likeCount'],
+      commentCount: json['commentCount'],
     );
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'api_service.dart';
 import 'home.dart';
+import 'config.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -29,13 +30,21 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (result['success']) {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('token', result['token']);
-      await prefs.setInt('userId', result['userId']);
+      final token = result['token'];
+      final userId = result['userId'];
+      await prefs.setString('token', token);
+      await prefs.setInt('userId', userId);
       await prefs.setString('userName', result['userName']);
 
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const Home()),
+        MaterialPageRoute(
+          builder: (_) => Home(
+            currentUserId: userId,
+            token: token,
+            baseUrl: AppConfig.baseUrl,
+          ),
+        ),
       );
     } else {
       ScaffoldMessenger.of(context)

@@ -9,6 +9,9 @@ class PostCard extends StatefulWidget {
   final int? currentUserId;
   final int? postUserId;
   final String baseUrl;
+  final int? initialLikesCount;
+  final int? initialCommentsCount;
+  final bool? initialIsLiked;
 
   const PostCard({
     super.key,
@@ -19,6 +22,9 @@ class PostCard extends StatefulWidget {
     this.currentUserId,
     this.postUserId,
     required this.baseUrl,
+    this.initialLikesCount,
+    this.initialCommentsCount,
+    this.initialIsLiked,
   });
 
   @override
@@ -34,9 +40,9 @@ class _PostCardState extends State<PostCard> {
   void initState() {
     super.initState();
     // Initialize with post data if available
-    // Note: Post from profile_model doesn't have likes/comments, so we start at 0
-    _likesCount = 0;
-    _commentsCount = 0;
+    _likesCount = widget.initialLikesCount ?? 0;
+    _commentsCount = widget.initialCommentsCount ?? 0;
+    _isLiked = widget.initialIsLiked ?? false;
   }
 
   String _getImageUrl(String? path) {
