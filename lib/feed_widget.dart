@@ -17,10 +17,11 @@ class FeedWidget extends StatefulWidget {
   });
 
   @override
-  State<FeedWidget> createState() => _FeedWidgetState();
+  State<FeedWidget> createState() => FeedWidgetState();
 }
 
-class _FeedWidgetState extends State<FeedWidget> {
+
+class FeedWidgetState extends State<FeedWidget> {
   final ScrollController _scrollController = ScrollController();
   final List<FeedPost> _posts = [];
   bool _isLoading = false;
@@ -29,6 +30,16 @@ class _FeedWidgetState extends State<FeedWidget> {
   final int _limit = 10;
   int? _currentUserId;
   String? _error;
+
+  void refresh() {
+    setState(() {
+      _offset = 0;
+      _posts.clear();
+      _hasMore = true;
+      _error = null;
+    });
+    _loadPosts();
+  }
 
   @override
   void initState() {

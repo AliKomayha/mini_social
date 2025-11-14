@@ -8,6 +8,7 @@ import 'main.dart';
 import 'config.dart';
 import 'follow_requests.dart';
 import 'feed_widget.dart';
+import 'create_post_screen.dart';
 
 class Home extends StatefulWidget {
   final int currentUserId;
@@ -29,6 +30,7 @@ class _HomeState extends State<Home> {
   String? token;
   int? userId;
   final String baseUrl = AppConfig.baseUrl;
+  final GlobalKey<FeedWidgetState> _feedWidgetKey = GlobalKey<FeedWidgetState>();
 
   @override
   void initState() {
@@ -44,9 +46,13 @@ class _HomeState extends State<Home> {
     });
   }
 
+  void _refreshFeed() {
+    _feedWidgetKey.currentState?.refresh();
+  }
+
   // All pages go here
   List<Widget> get _pages => [
-    FeedWidget(token: token!, baseUrl: baseUrl), // Home screen content
+    FeedWidget(key: _feedWidgetKey, token: token!, baseUrl: baseUrl), // Home screen content
     Profile(userId: userId!, token: token!, baseUrl: baseUrl ),
     const Search(),
   ];
@@ -104,9 +110,16 @@ class _HomeState extends State<Home> {
 
       floatingActionButton: FloatingActionButton(
           onPressed: () {
-            print('FAB clicked');
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => CreatePostScreen(
+                  onPostCreated: _refreshFeed,
+                ),
+              ),
+            );
           },
-          child: Icon(Icons.add),
+          child: const Icon(Icons.add),
         ),
         drawer: Drawer(
           child: ListView(
