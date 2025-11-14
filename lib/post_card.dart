@@ -3,6 +3,7 @@ import 'package:mini_social/data/models/profile_model.dart' as models;
 import 'package:mini_social/data/services/post_service.dart';
 import 'package:mini_social/profile_screen.dart';
 import 'package:mini_social/comments_screen.dart';
+import 'package:mini_social/edit_post_screen.dart';
 
 class PostCard extends StatefulWidget {
   final models.Post post;
@@ -16,6 +17,8 @@ class PostCard extends StatefulWidget {
   final int? initialLikesCount;
   final int? initialCommentsCount;
   final bool? initialIsLiked;
+  final VoidCallback? onPostDeleted;
+  final VoidCallback? onPostUpdated;
 
   const PostCard({
     super.key,
@@ -30,6 +33,8 @@ class PostCard extends StatefulWidget {
     this.initialLikesCount,
     this.initialCommentsCount,
     this.initialIsLiked,
+    this.onPostDeleted,
+    this.onPostUpdated,
   });
 
   @override
@@ -125,7 +130,7 @@ class _PostCardState extends State<PostCard> {
               title: const Text('Edit'),
               onTap: () {
                 Navigator.pop(context);
-                // TODO: Implement edit functionality
+                _editPost();
               },
             ),
             ListTile(
@@ -133,7 +138,7 @@ class _PostCardState extends State<PostCard> {
               title: const Text('Delete', style: TextStyle(color: Colors.red)),
               onTap: () {
                 Navigator.pop(context);
-                // TODO: Implement delete functionality
+                _deletePost();
               },
             ),
             ListTile(
@@ -145,6 +150,80 @@ class _PostCardState extends State<PostCard> {
         ),
       ),
     );
+  }
+
+  void _editPost() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => EditPostScreen(
+          postId: widget.post.id,
+          initialText: widget.post.text,
+          initialImagePath: widget.post.imagePath,
+          token: widget.token,
+          baseUrl: widget.baseUrl,
+          onPostUpdated: widget.onPostUpdated,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _deletePost() async {
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Post'),
+        content: const Text('Are you sure you want to delete this post? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    final service = PostService(
+      baseUrl: widget.baseUrl,
+      token: widget.token,
+    );
+
+    try {
+      final result = await service.deletePost(widget.post.id);
+
+      if (result['success'] == true) {
+        // Call the callback to refresh the feed/profile
+        widget.onPostDeleted?.call();
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Post deleted successfully')),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result['message'] ?? 'Failed to delete post'),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error deleting post: $e')),
+        );
+      }
+    }
   }
 
   @override

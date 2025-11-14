@@ -191,6 +191,8 @@ class FeedWidgetState extends State<FeedWidget> {
             initialLikesCount: feedPost.likeCount,
             initialCommentsCount: feedPost.commentCount,
             initialIsLiked: false, // API doesn't provide this, default to false
+            onPostDeleted: refresh,
+            onPostUpdated: refresh,
           );
         },
       ),

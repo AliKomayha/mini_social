@@ -29,8 +29,6 @@ class _ProfileState extends State<Profile> {
   late Future<ProfileResponse> _futureProfile;
   String? _token;
 
-
-
   @override
   void initState(){
     super.initState();
@@ -40,18 +38,26 @@ class _ProfileState extends State<Profile> {
         token: widget.token,
     ).getProfile(widget.userId);
   }
+  
   Future<void> _loadToken() async{
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _token = prefs.getString('token');
     });
   }
+
+  void _refreshProfile() {
+    setState(() {
+      _futureProfile = ProfileService(
+        baseUrl: widget.baseUrl,
+        token: widget.token,
+      ).getProfile(widget.userId);
+    });
+  }
   
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-
-
         body:  FutureBuilder<ProfileResponse>(
             future: _futureProfile,
             builder: (context, snapshot){
@@ -69,13 +75,15 @@ class _ProfileState extends State<Profile> {
               if (profile.message == "This account is private") {
                 return LimitedProfileView(profile: profile, token: _token);
               } else {
-                return FullProfileView(profile: profile,
-                token: _token,
+                return FullProfileView(
+                  profile: profile,
+                  token: _token,
+                  onPostDeleted: _refreshProfile,
+                  onPostUpdated: _refreshProfile,
                 );
               }
             },
         ),
-
     );
   }
 }
@@ -416,18 +424,22 @@ Full Profile
 class FullProfileView extends StatefulWidget {
   final ProfileResponse profile;
   final String? token;
+  final VoidCallback? onPostDeleted;
+  final VoidCallback? onPostUpdated;
 
   const FullProfileView({
     super.key,
     required this.profile,
     required this.token,
+    this.onPostDeleted,
+    this.onPostUpdated,
   });
 
   @override
-  State<FullProfileView> createState() => _FullProfileViewState();
+  State<FullProfileView> createState() => FullProfileViewState();
 }
 
-class _FullProfileViewState extends State<FullProfileView> {
+class FullProfileViewState extends State<FullProfileView> {
   bool _isFollowing = false;
   bool _loading = false;
   int? _currentUserId;
@@ -702,6 +714,8 @@ class _FullProfileViewState extends State<FullProfileView> {
           token: widget.token!,
           initialLikesCount: p.likeCount,
           initialCommentsCount: p.commentCount,
+          onPostDeleted: widget.onPostDeleted,
+          onPostUpdated: widget.onPostUpdated,
         )),
       ],
     );
