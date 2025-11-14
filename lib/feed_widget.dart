@@ -187,6 +187,7 @@ class FeedWidgetState extends State<FeedWidget> {
             currentUserId: _currentUserId,
             postUserId: feedPost.userId,
             baseUrl: widget.baseUrl,
+            token: widget.token,
             initialLikesCount: feedPost.likeCount,
             initialCommentsCount: feedPost.commentCount,
             initialIsLiked: false, // API doesn't provide this, default to false

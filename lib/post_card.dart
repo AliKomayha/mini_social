@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:mini_social/data/models/profile_model.dart';
+import 'package:mini_social/data/models/profile_model.dart' as models;
+import 'package:mini_social/data/services/post_service.dart';
+import 'package:mini_social/profile_screen.dart';
+import 'package:mini_social/comments_screen.dart';
 
 class PostCard extends StatefulWidget {
-  final Post post;
+  final models.Post post;
   final String? displayName;
   final String? username;
   final String? avatar;
   final int? currentUserId;
   final int? postUserId;
   final String baseUrl;
+  final String token;
   final int? initialLikesCount;
   final int? initialCommentsCount;
   final bool? initialIsLiked;
@@ -22,6 +26,7 @@ class PostCard extends StatefulWidget {
     this.currentUserId,
     this.postUserId,
     required this.baseUrl,
+    required this.token,
     this.initialLikesCount,
     this.initialCommentsCount,
     this.initialIsLiked,
@@ -54,16 +59,58 @@ class _PostCardState extends State<PostCard> {
     return '${widget.baseUrl}$cleanPath';
   }
 
-  void _toggleLike() {
+  void _toggleLike() async {
+    // Optimistic update
     setState(() {
       _isLiked = !_isLiked;
       _likesCount += _isLiked ? 1 : -1;
     });
-    // TODO: Implement like/unlike API call
+
+    final postService = PostService(baseUrl: widget.baseUrl, token: widget.token);
+
+    final result = await postService.toggleLike(widget.post.id,);
+
+    if (!result['success']) {
+      // Revert UI because backend failed
+      setState(() {
+        _isLiked = !_isLiked;
+        _likesCount += _isLiked ? 1 : -1;
+      });
+    } else {
+      // Ensure count stays synced with server
+      setState(() {
+        _likesCount = result['likeCount'];
+      });
+    }
   }
 
+
   void _navigateToComments() {
-    // TODO: Navigate to comments screen
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CommentsScreen(
+          postId: widget.post.id,
+          token: widget.token,
+          baseUrl: widget.baseUrl,
+        ),
+      ),
+    );
+  }
+
+  void _navigateToProfile() {
+    if (widget.postUserId != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => Profile(
+            userId: widget.postUserId!,
+            token: widget.token,
+            baseUrl: widget.baseUrl,
+          ),
+        ),
+      );
+    }
   }
 
   void _showEditDeleteMenu() {
@@ -118,14 +165,17 @@ class _PostCardState extends State<PostCard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Profile Picture
-            CircleAvatar(
-              radius: 24,
-              backgroundImage: widget.avatar != null && widget.avatar!.isNotEmpty
-                  ? NetworkImage(_getImageUrl(widget.avatar))
-                  : null,
-              child: widget.avatar == null || widget.avatar!.isEmpty
-                  ? const Icon(Icons.person, size: 24)
-                  : null,
+            GestureDetector(
+              onTap: _navigateToProfile,
+              child: CircleAvatar(
+                radius: 24,
+                backgroundImage: widget.avatar != null && widget.avatar!.isNotEmpty
+                    ? NetworkImage(_getImageUrl(widget.avatar))
+                    : null,
+                child: widget.avatar == null || widget.avatar!.isEmpty
+                    ? const Icon(Icons.person, size: 24)
+                    : null,
+              ),
             ),
             const SizedBox(width: 12),
             // Post Content

@@ -58,6 +58,7 @@ class PostService {
 
   Future<Map<String, dynamic>> toggleLike(int postId) async {
     final url = Uri.parse('$baseUrl/api/PostsApi/ToggleLike');
+
     
     var request = http.MultipartRequest('POST', url);
     request.headers['Authorization'] = 'Bearer $token';

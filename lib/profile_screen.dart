@@ -699,6 +699,7 @@ class _FullProfileViewState extends State<FullProfileView> {
           currentUserId: _currentUserId,
           postUserId: profile.profile.userId,
           baseUrl: AppConfig.baseUrl,
+          token: widget.token!,
           initialLikesCount: p.likeCount,
           initialCommentsCount: p.commentCount,
         )),
