@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:mini_social/data/models/profile_model.dart';
 import 'package:http/http.dart' as http;
 
@@ -102,6 +103,66 @@ class ProfileService{
       return data as List<dynamic>;
     } else {
       throw Exception('Search failed: ${response.statusCode} - ${response.body}');
+    }
+  }
+
+  Future<Map<String, dynamic>> editProfile({
+    required String displayName,
+    String? bio,
+    DateTime? birthDate,
+    required bool isPrivate,
+    File? avatarFile,
+  }) async {
+    final url = Uri.parse('$baseUrl/api/ProfilesApi/EditProfile');
+
+    var request = http.MultipartRequest('POST', url);
+    request.headers['Authorization'] = 'Bearer $token';
+    request.fields['DisplayName'] = displayName;
+    request.fields['IsPrivate'] = isPrivate.toString();
+    
+    if (bio != null && bio.isNotEmpty) {
+      request.fields['Bio'] = bio;
+    }
+    
+    if (birthDate != null) {
+      request.fields['BirthDate'] = birthDate.toIso8601String();
+    }
+
+    if (avatarFile != null) {
+      var fileStream = http.ByteStream(avatarFile.openRead());
+      var fileLength = await avatarFile.length();
+      var multipartFile = http.MultipartFile(
+        'AvatarFile',
+        fileStream,
+        fileLength,
+        filename: avatarFile.path.split('/').last,
+      );
+      request.files.add(multipartFile);
+    }
+
+    try {
+      var streamedResponse = await request.send();
+      var response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return {
+          'success': true,
+          'message': data['message'],
+          'profile': data['profile'],
+        };
+      } else {
+        final error = jsonDecode(response.body);
+        return {
+          'success': false,
+          'message': error['message'] ?? 'Failed to update profile',
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Error updating profile: $e',
+      };
     }
   }
 }

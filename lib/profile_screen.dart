@@ -73,13 +73,20 @@ class _ProfileState extends State<Profile> {
               final profile = snapshot.data!;
 
               if (profile.message == "This account is private") {
-                return LimitedProfileView(profile: profile, token: _token);
+                return LimitedProfileView(
+                  profile: profile,
+                  token: _token,
+                  baseUrl: widget.baseUrl,
+                  onProfileUpdated: _refreshProfile,
+                );
               } else {
                 return FullProfileView(
                   profile: profile,
                   token: _token,
+                  baseUrl: widget.baseUrl,
                   onPostDeleted: _refreshProfile,
                   onPostUpdated: _refreshProfile,
+                  onProfileUpdated: _refreshProfile,
                 );
               }
             },
@@ -91,11 +98,15 @@ class _ProfileState extends State<Profile> {
 class LimitedProfileView extends StatefulWidget {
   final ProfileResponse profile;
   final String? token;
+  final String baseUrl;
+  final VoidCallback? onProfileUpdated;
 
   const LimitedProfileView({
     super.key,
     required this.profile,
     required this.token,
+    required this.baseUrl,
+    this.onProfileUpdated,
   });
 
   @override
@@ -131,7 +142,7 @@ class _LimitedProfileViewState extends State<LimitedProfileView> {
     setState(() => _loading = true);
 
     final service = ProfileService(
-      baseUrl: AppConfig.baseUrl,
+      baseUrl: widget.baseUrl,
       token: widget.token!,
     );
 
@@ -170,7 +181,7 @@ class _LimitedProfileViewState extends State<LimitedProfileView> {
     }
     
     // Otherwise, prepend baseUrl
-    return '${AppConfig.baseUrl}$cleanPath';
+    return '${widget.baseUrl}$cleanPath';
   }
 
   @override
@@ -230,7 +241,12 @@ class _LimitedProfileViewState extends State<LimitedProfileView> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => const EditProfile(),
+                              builder: (_) => EditProfile(
+                                profile: profile.profile,
+                                token: widget.token!,
+                                baseUrl: widget.baseUrl,
+                                onProfileUpdated: widget.onProfileUpdated,
+                              ),
                             ),
                           );
                         },
@@ -328,7 +344,7 @@ class _LimitedProfileViewState extends State<LimitedProfileView> {
                           builder: (_) => FollowingScreen(
                             userId: profile.profile.userId,
                             token: widget.token!,
-                            baseUrl: AppConfig.baseUrl,
+                            baseUrl: widget.baseUrl,
                           ),
                         ),
                       );
@@ -345,7 +361,7 @@ class _LimitedProfileViewState extends State<LimitedProfileView> {
                           builder: (_) => FollowersScreen(
                             userId: profile.profile.userId,
                             token: widget.token!,
-                            baseUrl: AppConfig.baseUrl,
+                            baseUrl: widget.baseUrl,
                           ),
                         ),
                       );
@@ -424,15 +440,19 @@ Full Profile
 class FullProfileView extends StatefulWidget {
   final ProfileResponse profile;
   final String? token;
+  final String baseUrl;
   final VoidCallback? onPostDeleted;
   final VoidCallback? onPostUpdated;
+  final VoidCallback? onProfileUpdated;
 
   const FullProfileView({
     super.key,
     required this.profile,
     required this.token,
+    required this.baseUrl,
     this.onPostDeleted,
     this.onPostUpdated,
+    this.onProfileUpdated,
   });
 
   @override
@@ -485,7 +505,7 @@ class FullProfileViewState extends State<FullProfileView> {
     setState(() => _loading = true);
 
     final service = ProfileService(
-      baseUrl: AppConfig.baseUrl,
+      baseUrl: widget.baseUrl,
       token: widget.token!,
     );
 
@@ -514,7 +534,7 @@ class FullProfileViewState extends State<FullProfileView> {
     if (cleanPath.startsWith('http://') || cleanPath.startsWith('https://')) {
       return cleanPath;
     }
-    return '${AppConfig.baseUrl}$cleanPath';
+    return '${widget.baseUrl}$cleanPath';
   }
 
   @override
@@ -574,7 +594,12 @@ class FullProfileViewState extends State<FullProfileView> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => const EditProfile(),
+                              builder: (_) => EditProfile(
+                                profile: profile.profile,
+                                token: widget.token!,
+                                baseUrl: widget.baseUrl,
+                                onProfileUpdated: widget.onProfileUpdated,
+                              ),
                             ),
                           );
                         },
@@ -669,7 +694,7 @@ class FullProfileViewState extends State<FullProfileView> {
                           builder: (_) => FollowingScreen(
                             userId: profile.profile.userId,
                             token: widget.token!,
-                            baseUrl: AppConfig.baseUrl,
+                            baseUrl: widget.baseUrl,
                           ),
                         ),
                       );
@@ -686,7 +711,7 @@ class FullProfileViewState extends State<FullProfileView> {
                           builder: (_) => FollowersScreen(
                             userId: profile.profile.userId,
                             token: widget.token!,
-                            baseUrl: AppConfig.baseUrl,
+                            baseUrl: widget.baseUrl,
                           ),
                         ),
                       );
@@ -710,7 +735,7 @@ class FullProfileViewState extends State<FullProfileView> {
           avatar: profile.profile.avatar,
           currentUserId: _currentUserId,
           postUserId: profile.profile.userId,
-          baseUrl: AppConfig.baseUrl,
+          baseUrl: widget.baseUrl,
           token: widget.token!,
           initialLikesCount: p.likeCount,
           initialCommentsCount: p.commentCount,
