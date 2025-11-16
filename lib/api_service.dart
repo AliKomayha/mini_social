@@ -34,4 +34,40 @@ class ApiService {
       };
     }
   }
+
+  static Future<Map<String, dynamic>> signup({
+    required String username,
+    required String email,
+    required String password,
+    required String displayName,
+  }) async {
+    final url = Uri.parse('$baseUrl/signup');
+
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'username': username,
+        'email': email,
+        'password': password,
+        'displayName': displayName,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return {
+        'success': true,
+        'message': data['message'],
+        'userId': data['userId'],
+        'username': data['username'],
+      };
+    } else {
+      final error = jsonDecode(response.body);
+      return {
+        'success': false,
+        'message': error['message'] ?? 'Signup failed',
+      };
+    }
+  }
 }

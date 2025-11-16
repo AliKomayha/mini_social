@@ -3,61 +3,86 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'api_service.dart';
 import 'home.dart';
 import 'config.dart';
-import 'signup_screen.dart';
+import 'LoginScreen.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class SignupScreen extends StatefulWidget {
+  const SignupScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<SignupScreen> createState() => _SignupScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _SignupScreenState extends State<SignupScreen> {
   final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _displayNameController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
   bool _obscurePassword = true;
 
-  Future<void> _login() async {
+  Future<void> _signup() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
 
     setState(() => _isLoading = true);
 
-    final username = _usernameController.text.trim();
-    final password = _passwordController.text;
-
-    final result = await ApiService.login(username, password);
+    final result = await ApiService.signup(
+      username: _usernameController.text.trim(),
+      email: _emailController.text.trim(),
+      password: _passwordController.text,
+      displayName: _displayNameController.text.trim(),
+    );
 
     setState(() => _isLoading = false);
 
     if (result['success']) {
-      final prefs = await SharedPreferences.getInstance();
-      final token = result['token'];
-      final userId = result['userId'];
-      await prefs.setString('token', token);
-      await prefs.setInt('userId', userId);
-      await prefs.setString('userName', result['userName']);
+      // Auto-login after successful signup
+      final loginResult = await ApiService.login(
+        _usernameController.text.trim(),
+        _passwordController.text,
+      );
 
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => Home(
-              currentUserId: userId,
-              token: token,
-              baseUrl: AppConfig.baseUrl,
+      if (loginResult['success']) {
+        final prefs = await SharedPreferences.getInstance();
+        final token = loginResult['token'];
+        final userId = loginResult['userId'];
+        await prefs.setString('token', token);
+        await prefs.setInt('userId', userId);
+        await prefs.setString('userName', loginResult['userName']);
+
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => Home(
+                currentUserId: userId,
+                token: token,
+                baseUrl: AppConfig.baseUrl,
+              ),
             ),
-          ),
-        );
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Signup successful! Please log in.'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const LoginScreen()),
+          );
+        }
       }
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(result['message'] ?? 'Login failed'),
+            content: Text(result['message'] ?? 'Signup failed'),
             backgroundColor: Colors.red,
           ),
         );
@@ -68,7 +93,9 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void dispose() {
     _usernameController.dispose();
+    _emailController.dispose();
     _passwordController.dispose();
+    _displayNameController.dispose();
     super.dispose();
   }
 
@@ -76,6 +103,14 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.close, color: Colors.black),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -84,31 +119,51 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: 60),
+                const SizedBox(height: 20),
                 // Logo/Title
                 const Text(
-                  'Welcome back',
+                  'Create your account',
                   style: TextStyle(
                     fontSize: 30,
                     fontWeight: FontWeight.bold,
                     color: Colors.black87,
                   ),
                 ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Sign in to continue',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey,
-                  ),
-                ),
                 const SizedBox(height: 40),
+                // Display Name Field
+                TextFormField(
+                  controller: _displayNameController,
+                  decoration: InputDecoration(
+                    labelText: 'Display Name',
+                    hintText: 'Enter your display name',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(4),
+                      borderSide: const BorderSide(color: Colors.grey),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(4),
+                      borderSide: const BorderSide(color: Colors.blue, width: 2),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 16,
+                    ),
+                  ),
+                  style: const TextStyle(fontSize: 16),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Display name is required';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
                 // Username Field
                 TextFormField(
                   controller: _usernameController,
                   decoration: InputDecoration(
                     labelText: 'Username',
-                    hintText: 'Enter your username',
+                    hintText: 'Choose a username',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(4),
                       borderSide: const BorderSide(color: Colors.grey),
@@ -126,6 +181,41 @@ class _LoginScreenState extends State<LoginScreen> {
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
                       return 'Username is required';
+                    }
+                    if (value.length < 3) {
+                      return 'Username must be at least 3 characters';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                // Email Field
+                TextFormField(
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: InputDecoration(
+                    labelText: 'Email',
+                    hintText: 'Enter your email',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(4),
+                      borderSide: const BorderSide(color: Colors.grey),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(4),
+                      borderSide: const BorderSide(color: Colors.blue, width: 2),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 16,
+                    ),
+                  ),
+                  style: const TextStyle(fontSize: 16),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Email is required';
+                    }
+                    if (!value.contains('@')) {
+                      return 'Please enter a valid email';
                     }
                     return null;
                   },
@@ -169,15 +259,18 @@ class _LoginScreenState extends State<LoginScreen> {
                     if (value == null || value.isEmpty) {
                       return 'Password is required';
                     }
+                    if (value.length < 6) {
+                      return 'Password must be at least 6 characters';
+                    }
                     return null;
                   },
                 ),
                 const SizedBox(height: 32),
-                // Login Button
+                // Sign Up Button
                 SizedBox(
                   height: 50,
                   child: ElevatedButton(
-                    onPressed: _isLoading ? null : _login,
+                    onPressed: _isLoading ? null : _signup,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.black,
                       foregroundColor: Colors.white,
@@ -196,7 +289,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           )
                         : const Text(
-                            'Log in',
+                            'Sign up',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -205,12 +298,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 24),
-                // Don't have an account link
+                // Already have an account link
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Text(
-                      "Don't have an account? ",
+                      'Already have an account? ',
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.grey,
@@ -218,15 +311,15 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     GestureDetector(
                       onTap: () {
-                        Navigator.push(
+                        Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => const SignupScreen(),
+                            builder: (_) => const LoginScreen(),
                           ),
                         );
                       },
                       child: const Text(
-                        'Sign up',
+                        'Log in',
                         style: TextStyle(
                           fontSize: 14,
                           color: Colors.blue,
@@ -245,3 +338,4 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 }
+
